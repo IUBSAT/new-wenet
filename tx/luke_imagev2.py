@@ -10,10 +10,10 @@ new_size = ["800x608"]
 def capture_process(capture_queue):
     while True:
         for i in image_range:
-            cmd = "libcamera-still -o new_images/%d.jpg" % i
+            cmd = "libcamera-still --immediate -o new_images/%d.jpg" % i
             os.system(cmd)
             capture_queue.put(i)
-            time.sleep(1)  # Adjust sleep time based on capture frequency
+            #time.sleep(1)  # Adjust sleep time based on capture frequency
 
 def ssdv_process(capture_queue, encode_queue, encoded_set, transmitted_set, latest_image):
     while True:
@@ -35,17 +35,17 @@ def transmit_process(encode_queue, transmitted_set, latest_image):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    filename = "%d.jpg" % image_num
+    #filename = "%d.jpg" % image_num
     os.system("cp new_images/%d.jpg new_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
-    overlay_str = "convert %s -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % filename 
+    overlay_str = "convert new_images/%d.jpg -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % image_num
     overlay_str += "-strokewidth 2 -stroke '#000C' -annotate +0+5 \"%s\" " % "test"
     overlay_str += "-stroke none -fill white -annotate +0+5 \"%s\" " % "test"
 	# Add on logo overlay argument if we have been given one.
     # if args.logo != "none":
     #     overlay_str += "%s -gravity SouthEast -composite " % args.logo
 
-    overlay_str += filename
+    overlay_str += "new_images/%d.jpg" % image_num
 
     #tx.transmit_text_message("Adding overlays to image.")
     os.system(overlay_str)
