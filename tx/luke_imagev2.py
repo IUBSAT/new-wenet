@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue
+from multiprocessing import Process, Queue, Value
 import PacketTX, sys, os, argparse
 import time
 
@@ -7,35 +7,36 @@ image_range = range(1, 20)
 debug_output = False
 new_size = ["800x608"]
 
-def capture_proc(capture_queue):
+def capture_process(capture_queue):
     while True:
         for i in image_range:
             cmd = "libcamera-still -o new_images/%d.jpg" % i
             os.system(cmd)
             capture_queue.put(i)
-            #time.sleep(1)  # Adjust sleep time based on capture frequency
+            time.sleep(1)  # Adjust sleep time based on capture frequency
 
-def ssdv_proc(capture_queue, encode_queue, encoded_set, transmitted_set):
+def ssdv_process(capture_queue, encode_queue, encoded_set, transmitted_set, latest_image):
     while True:
         if not capture_queue.empty():
             image_num = capture_queue.get()
-            if image_num not in transmitted_set:
+            if image_num > latest_image.value:
                 encode_image(image_num)
                 encode_queue.put(image_num)
                 encoded_set.add(image_num)
+                latest_image.value = image_num
 
-def transmit_proc(encode_queue, transmitted_set):
+def transmit_process(encode_queue, transmitted_set, latest_image):
     while True:
         if not encode_queue.empty():
             image_num = encode_queue.get()
-            if image_num not in transmitted_set:
+            if image_num > latest_image.value and image_num not in transmitted_set:
                 transmit_image(image_num)
                 transmitted_set.add(image_num)
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
     filename = "%d.jpg" % image_num
-    os.system("cp new_images/%s new_images/%d_raw.jpg" % (filename, image_num))
+    os.system("cp new_images/%d.jpg new_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
     overlay_str = "convert %s -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % filename 
     overlay_str += "-strokewidth 2 -stroke '#000C' -annotate +0+5 \"%s\" " % "test"
@@ -50,8 +51,8 @@ def encode_image(image_num):
     os.system(overlay_str)
     for size in new_size:
         os.system(
-            "convert new_images/%s -resize %s\! new_images/%d_%s.jpg" % (
-                filename, size, image_num, size))
+            "convert new_images/%d.jpg -resize %s\! new_images/%d_%s.jpg" % (
+                image_num, size, image_num, size))
 
     new_size.append("raw")
 
@@ -92,29 +93,31 @@ parser.add_argument("--baudrate", default=115200, type=int,
 args = parser.parse_args()
 
 if __name__ == "__main__":
+
     capture_queue = Queue()
     encode_queue = Queue()
     encoded_set = set()
     transmitted_set = set()
+    latest_image = Value('i', 0)
 
     # Start the capture process
-    capture_proc = Process(target=capture_proc, args=(capture_queue,))
-    capture_proc.start()
+    capture_process = Process(target=capture_process, args=(capture_queue,))
+    capture_process.start()
 
     # Start the ssdv process
-    ssdv_proc = Process(target=ssdv_proc, args=(capture_queue, encode_queue, encoded_set, transmitted_set))
-    ssdv_proc.start()
+    ssdv_process = Process(target=ssdv_process, args=(capture_queue, encode_queue, encoded_set, transmitted_set, latest_image))
+    ssdv_process.start()
 
     # Start the transmit process
-    transmit_proc = Process(target=transmit_proc, args=(encode_queue, transmitted_set))
-    transmit_proc.start()
+    transmit_process = Process(target=transmit_process, args=(encode_queue, transmitted_set, latest_image))
+    transmit_process.start()
 
     try:
-        capture_proc.join()
-        ssdv_proc.join()
-        transmit_proc.join()
+        capture_process.join()
+        ssdv_process.join()
+        transmit_process.join()
     except KeyboardInterrupt:
         print("Terminating processes...")
-        capture_proc.terminate()
-        ssdv_proc.terminate()
-        transmit_proc.terminate()
+        capture_process.terminate()
+        ssdv_process.terminate()
+        transmit_process.terminate()
