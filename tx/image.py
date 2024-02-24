@@ -6,14 +6,14 @@
 # 3. Transmit Image (tx_test_images.py)
 
 import PacketTX, sys, os, argparse, glob
+import multiprocessing as mp
 
 callsign = "KD9ZSC"
-
 image_range = range(1,20)
-
 debug_output = False
+new_size =["800x608"]
 
-def main():
+def controller():
     for i in image_range:
         capture(i)
         ssdv(i)
@@ -24,22 +24,22 @@ def main():
         print("\nTXing: %s" % filename)
         transmit_file(filename,tx)  
         tx.close()
-        
+
+# run cmd line tool to take the picture and store it in new_images        
 def capture(image_num):
     cmd = "libcamera-still -o new_images/%d.jpg" % image_num
     os.system(cmd)
 
-new_size =["800x608"]
 
 def ssdv(image_num):
-    os.system("cp new_images/%d.jpg new_images/%d_raw.jpg" % (image_num,image_num))
+    os.system("cp new_images/%d.jpg new_images/%d_raw.jpg" % (image_num,image_num)) #make a copy of the image that was just captured
     for size in new_size:
-	    os.system("convert new_images/%d.jpg -resize %s\! new_images/%d_%s.jpg" % (image_num,size,image_num,size))
-
+        os.system("convert new_images/%d.jpg -resize %s\! new_images/%d_%s.jpg" % (image_num,size,image_num,size)) #resize the image to the values in new_size
+    
     new_size.append("raw")
 
     for size in new_size:
-        os.system("ssdv -e -n -q 6 -c %s -i %d new_images/%d_%s.jpg new_images/%d_%s.bin" % (callsign,image_num,image_num,size,image_num,size))
+        os.system("ssdv -e -n -q 6 -c %s -i %d new_images/%d_%s.jpg new_images/%d_%s.bin" % (callsign,image_num,image_num,size,image_num,size)) #run ssdv command to create bin file which contains the encoded packets
 
 def transmit_file(filename, tx_object):
     file_size = os.path.getsize(filename)
@@ -64,4 +64,4 @@ parser.add_argument("--baudrate", default=115200, type=int, help="Transmitter ba
 args = parser.parse_args()
 
 if __name__ == "__main__":
-    main()
+    controller()
