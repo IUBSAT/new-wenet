@@ -8,11 +8,13 @@ debug_output = False
 new_size = ["800x608"]
 
 def capture_process(capture_list):
+    i = 1
     while True:
-        for i in image_range:
+        #for i in image_range:
             cmd = "libcamera-still --immediate -o new_images/%d.jpg" % i
             os.system(cmd)
             capture_list.append(i)
+            i += 1
             time.sleep(0.5)  # Adjust sleep time based on capture frequency
 
 def ssdv_process(capture_list, encode_queue, encoded_set, transmitted_set, latest_image):
@@ -33,6 +35,7 @@ def transmit_process(encode_queue, transmitted_set, latest_image):
     while True:
         if not encode_queue.empty():
             image_num = encode_queue.get()
+            print("Transmitting image {}" .format(image_num))
             if image_num > latest_image.value and image_num not in transmitted_set:
                 transmit_image(image_num)
                 transmitted_set.add(image_num)
@@ -54,6 +57,7 @@ def encode_image(image_num):
     #tx.transmit_text_message("Adding overlays to image.")
     os.system(overlay_str)
     
+    #resize the image
     for size in new_size:
         os.system(
             "convert new_images/%d.jpg -resize %s\! new_images/%d_%s.jpg" % (
@@ -61,6 +65,7 @@ def encode_image(image_num):
 
     new_size.append("raw")
 
+    #encode the image
     for size in new_size:
         os.system(
             "ssdv -e -n -q 6 -c %s -i %d new_images/%d_%s.jpg new_images/%d_%s.bin" % (
@@ -103,17 +108,17 @@ if __name__ == "__main__":
         capture_list = manager.list()
         capture_queue =manager.Queue()
         encode_queue = manager.Queue()
-        encoded_set = manager.set()
-        transmitted_set = manager.set()
+        encoded_set = set()
+        transmitted_set = set()
         
         latest_image = Value('i', 0)
 
         # Start the capture process
-        capture_process = Process(target=capture_process, args=(capture_queue,))
+        capture_process = Process(target=capture_process, args=(capture_list,))
         capture_process.start()
 
         # Start the ssdv process
-        ssdv_process = Process(target=ssdv_process, args=(capture_queue, encode_queue, encoded_set, transmitted_set, latest_image))
+        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_queue, encoded_set, transmitted_set, latest_image))
         ssdv_process.start()
 
         # Start the transmit process
