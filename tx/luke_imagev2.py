@@ -11,7 +11,7 @@ def capture_process(capture_list):
     i = 1
     while True:
         #for i in image_range:
-            cmd = "libcamera-still --immediate -o new_images/%d.jpg" % i
+            cmd = "libcamera-still --immediate -o tx_images/%d.jpg" % i
             os.system(cmd)
             capture_list.append(i)
             i += 1
@@ -21,7 +21,7 @@ def ssdv_process(capture_list, encode_queue, encoded_set, transmitted_set, lates
     while True:
         if capture_list:
             image_num = capture_list[-1]
-            list_of_files = glob.glob('new_images/*.jpg') # * means all if need specific format then *.csv
+            list_of_files = glob.glob('tx_images/*.jpg') # * means all if need specific format then *.csv
             latest_file = max(list_of_files, key=os.path.getctime)
             print("Latest jpg from the camera: ",latest_file)
             if image_num > latest_image.value:
@@ -42,17 +42,17 @@ def transmit_process(encode_queue, transmitted_set, latest_image):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    #filename = "new_images/%d.jpg" % image_num
-    os.system("cp new_images/%d.jpg new_images/%d_raw.jpg" % (image_num, image_num))
+    #filename = "tx_images/%d.jpg" % image_num
+    os.system("cp tx_images/%d.jpg tx_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
-    overlay_str = "convert new_images/%d.jpg -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % image_num
+    overlay_str = "convert tx_images/%d.jpg -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % image_num
     overlay_str += "-strokewidth 2 -stroke '#000C' -annotate +0+5 \"%s\" " % "test"
     overlay_str += "-stroke none -fill white -annotate +0+5 \"%s\" " % "test"
 	# Add on logo overlay argument if we have been given one.
     # if args.logo != "none":
     #     overlay_str += "%s -gravity SouthEast -composite " % args.logo
 
-    overlay_str += "new_images/%d.jpg" % image_num
+    overlay_str += "tx_images/%d.jpg" % image_num
 
     #tx.transmit_text_message("Adding overlays to image.")
     os.system(overlay_str)
@@ -60,7 +60,7 @@ def encode_image(image_num):
     #resize the image
     for size in new_size:
         os.system(
-            "convert new_images/%d.jpg -resize %s\! new_images/%d_%s.jpg" % (
+            "convert tx_images/%d.jpg -resize %s\! tx_images/%d_%s.jpg" % (
                 image_num, size, image_num, size))
 
     new_size.append("raw")
@@ -68,13 +68,13 @@ def encode_image(image_num):
     #encode the image
     for size in new_size:
         os.system(
-            "ssdv -e -n -q 6 -c %s -i %d new_images/%d_%s.jpg new_images/%d_%s.bin" % (
+            "ssdv -e -n -q 6 -c %s -i %d tx_images/%d_%s.jpg tx_images/%d_%s.bin" % (
                 callsign, image_num, image_num, size, image_num, size))
 
 def transmit_image(image_num):
     tx = PacketTX.PacketTX(debug=debug_output, serial_baud=args.baudrate)
     tx.start_tx()
-    filename = f"new_images/{image_num}_800x608.bin"
+    filename = f"tx_images/{image_num}_800x608.bin"
     print("\nTXing: %s" % filename)
     transmit_file(filename, tx)
     tx.close()
