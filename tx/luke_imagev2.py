@@ -1,9 +1,9 @@
-from multiprocessing import Process, Queue, Value, Manager
+from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob
 import time
 
 callsign = "KD9ZSC"
-image_range = range(1, 20)
+#image_range = range(1, 20)
 debug_output = False
 new_size = ["800x608"]
 
@@ -15,30 +15,38 @@ def capture_process(capture_list):
             os.system(cmd)
             capture_list.append(i)
             i += 1
-            time.sleep(0.5)  # Adjust sleep time based on capture frequency
+            time.sleep(1.0)  # Adjust sleep time based on capture frequency
 
-def ssdv_process(capture_list, encode_queue, encoded_set, transmitted_set, latest_image):
+def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
     while True:
         if capture_list:
+            
+            tx_done_event.wait()
+            tx_done_event.clear()
+
             image_num = capture_list[-1]
             list_of_files = glob.glob('tx_images/*.jpg') # * means all if need specific format then *.csv
             latest_file = max(list_of_files, key=os.path.getctime)
+            
             print("Latest jpg from the camera: ",latest_file)
-            if image_num > latest_image.value:
-                print("Encoding image {} because it is newer than {}" .format(image_num, latest_image.value))
+            
+            if image_num > last_encoded.value:
+                print("Encoding image {} because it is newer than {}" .format(image_num, last_encoded.value))
                 encode_image(image_num)
-                encode_queue.put(image_num)
+                encode_list.append(image_num)
                 encoded_set.add(image_num)
-                latest_image.value = image_num
+                last_encoded.value = image_num
 
-def transmit_process(encode_queue, transmitted_set, latest_image):
+def transmit_process(encode_list, transmitted_set, last_sent):
     while True:
-        if not encode_queue.empty():
-            image_num = encode_queue.get()
-            print("Transmitting image {}" .format(image_num))
-            if image_num > latest_image.value and image_num not in transmitted_set:
+        if encode_list:
+            image_num = encode_list[-1]
+            if image_num >= last_sent.value and image_num not in transmitted_set:
+                print("Transmitting image {}" .format(image_num))
                 transmit_image(image_num)
                 transmitted_set.add(image_num)
+                last_sent.value = image_num
+                tx_done_event.set()
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
@@ -106,23 +114,30 @@ if __name__ == "__main__":
 
     with Manager() as manager:
         capture_list = manager.list()
-        capture_queue =manager.Queue()
-        encode_queue = manager.Queue()
+        encode_list = manager.list()
+        #capture_queue =manager.Queue()
+        #encode_queue = manager.Queue()
         encoded_set = set()
         transmitted_set = set()
         
-        latest_image = Value('i', 0)
+        last_encoded = Value('i', 0)
+        last_sent = Value('i', 0)
+
+        tx_done_event = manager.Event()
+        # Set the event manually for the first time
+        tx_done_event.set()
 
         # Start the capture process
+        print("Spawning Processes...")
         capture_process = Process(target=capture_process, args=(capture_list,))
         capture_process.start()
 
         # Start the ssdv process
-        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_queue, encoded_set, transmitted_set, latest_image))
+        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_list, encoded_set, transmitted_set, la))
         ssdv_process.start()
 
         # Start the transmit process
-        transmit_process = Process(target=transmit_process, args=(encode_queue, transmitted_set, latest_image))
+        transmit_process = Process(target=transmit_process, args=(encode_list, transmitted_set, latest_image))
         transmit_process.start()
 
         try:
