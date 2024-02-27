@@ -20,7 +20,6 @@ def capture_process(capture_list):
 def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
     while True:
         if capture_list:
-            
             tx_done_event.wait()
             tx_done_event.clear()
 
@@ -133,7 +132,7 @@ if __name__ == "__main__":
         capture_process.start()
 
         # Start the ssdv process
-        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_list, encoded_set, transmitted_set, last_encoded))
+        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_list, encoded_set, last_encoded))
         ssdv_process.start()
 
         # Start the transmit process
