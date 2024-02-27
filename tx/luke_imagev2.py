@@ -133,11 +133,11 @@ if __name__ == "__main__":
         capture_process.start()
 
         # Start the ssdv process
-        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_list, encoded_set, transmitted_set, la))
+        ssdv_process = Process(target=ssdv_process, args=(capture_list, encode_list, encoded_set, transmitted_set, last_encoded))
         ssdv_process.start()
 
         # Start the transmit process
-        transmit_process = Process(target=transmit_process, args=(encode_list, transmitted_set, latest_image))
+        transmit_process = Process(target=transmit_process, args=(encode_list, transmitted_set, last_sent))
         transmit_process.start()
 
         try:
