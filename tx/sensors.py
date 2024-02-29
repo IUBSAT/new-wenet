@@ -40,12 +40,12 @@ def read_bme680():
 
 def altitude():
     temperature, pressure, gas, humidity = read_bme680()
-    SeaPress = 1014.5 
+    SeaPress = pressure / ((1 - (804/44330))**5.255)
     altitude = 44330*(1 - (pressure / SeaPress))**(1/5.255)
     print("this is altitude: ") 
     print(altitude)
     #print("\n") 
-    #return altitude 
+    return altitude, temperature, pressure, gas, humidity
 
 def read_lsm303agr():
     def read_signed_data(register):

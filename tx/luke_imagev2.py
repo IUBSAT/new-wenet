@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob
 import time
-from sensors import read_bme680, SensCall 
+from sensors import read_bme680, SensCall, altitude
 
 callsign = "KD9ZSC"
 #image_range = range(1, 20)
@@ -50,13 +50,14 @@ def transmit_process(encode_list, transmitted_set, last_sent):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    temp, press, gas, humidity = read_bme680()
+    alt, temp, press, gas, humidity = altitude()
+    telem_str = "Alt: %dm   Temp: %.2f" % (alt, temp)
     #filename = "tx_images/%d.jpg" % image_num
     os.system("cp tx_images/%d.jpg tx_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
     overlay_str = "convert tx_images/%d.jpg -gamma 0.8 -font Helvetica -pointsize 40 -gravity North " % image_num
-    overlay_str += "-strokewidth 4 -stroke '#000C' -annotate +0+5 \"%s\" " % temp
-    overlay_str += "-stroke none -fill white -annotate +0+5 \"%s\" " % press
+    overlay_str += "-strokewidth 4 -stroke '#000C' -annotate +0+5 \"%s\" " % telem_str
+    overlay_str += "-stroke none -fill white -annotate +0+5 \"%s\" " % telem_str
 	# Add on logo overlay argument if we have been given one.
     # if args.logo != "none":
     #     overlay_str += "%s -gravity SouthEast -composite " % args.logo
