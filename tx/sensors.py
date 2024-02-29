@@ -40,8 +40,8 @@ def read_bme680():
 
 def altitude():
     temperature, pressure, gas, humidity = read_bme680()
-    SeaPress = pressure / ((1 - (804/44330))**5.255)
-    altitude = 44330*(1 - (pressure / SeaPress))**(1/5.255)
+    SeaPress = pressure / ((1 - (243/44330))**5.255)
+    altitude = 44330*(1 - ((pressure / SeaPress)**(1/5.255)))
     print("this is altitude: ") 
     print(altitude)
     #print("\n") 
