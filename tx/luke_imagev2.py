@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob
 import time
-from sensors import read_bme680, SensCall, altitude
+from sensors import read_bme680, SensCall2, altitude
 
 callsign = "KD9ZSC"
 #image_range = range(1, 20)
@@ -12,10 +12,11 @@ def capture_process(capture_list):
     i = 1
     while True:
         #for i in image_range:
-            cmd = "libcamera-still --immediate -o tx_images/%d.jpg" % i
+            cmd = "libcamera-still --immediate -n -o tx_images/%d.jpg" % i
             os.system(cmd)
             capture_list.append(i)
             i += 1
+            SensCall()
             time.sleep(1.0)  # Adjust sleep time based on capture frequency
 
 def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
@@ -48,10 +49,15 @@ def transmit_process(encode_list, transmitted_set, last_sent):
                 last_sent.value = image_num
                 tx_done_event.set()
 
+def sensor_process():
+    while True:
+        tx_done_event.wait(10.0) #timeout, in case tx dies. Also, let the encoder process clear the flag, as it is higher priority
+        SensCall2()
+
 def encode_image(image_num):
     # Similar to your existing ssdv function
     alt, temp, press, gas, humidity = altitude()
-    telem_str = "Alt: %dm   Temp: %.2f" % (alt, temp)
+    telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
     #filename = "tx_images/%d.jpg" % image_num
     os.system("cp tx_images/%d.jpg tx_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
@@ -141,6 +147,9 @@ if __name__ == "__main__":
         # Start the transmit process
         transmit_process = Process(target=transmit_process, args=(encode_list, transmitted_set, last_sent))
         transmit_process.start()
+
+        sensor_process = Process(target=sensor_process, args=())
+        sensor_process.start()
 
         try:
             capture_process.join()

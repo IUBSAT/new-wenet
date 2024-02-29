@@ -41,7 +41,7 @@ def read_bme680():
 def altitude():
     temperature, pressure, gas, humidity = read_bme680()
     SeaPress = pressure / ((1 - (243/44330))**5.255)
-    altitude = 44330*(1 - ((pressure / SeaPress)**(1/5.255)))
+    altitude = int( 44330*(1 - ((pressure / SeaPress)**(1/5.255))) )
     print("this is altitude: ") 
     print(altitude)
     #print("\n") 
@@ -60,16 +60,16 @@ def read_lsm303agr():
     return accel_x, accel_y, accel_z
 
 def SensCall():
-    altitude() 
     SenFile = open("SensorData.txt", "a")
     seconds = time.time() 
-    temperature, pressure, gas, humidity = read_bme680()
+    alt, temperature, pressure, gas, humidity = altitude()
     accel_x, accel_y, accel_z = read_lsm303agr()
+    #alt = altitude()
     print("epoch time: ", seconds)
     message = [f"\nNEW TRANSMIT, {seconds}\n"] 
     SenFile.writelines(message)
 
-    lines = [f"Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
+    lines = [f"Time: {seconds}, Alt: {int(alt)}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
     SenFile.writelines(lines)   
 
     print(f"Temperature: {temperature:.2f}°C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms")
@@ -77,7 +77,26 @@ def SensCall():
 
     SenFile.close()
 
+def SensCall2():
+    try:
+        with open("SensorData.txt", "a") as SenFile:
+            seconds = time.time() 
+            alt, temperature, pressure, gas, humidity = altitude()
+            accel_x, accel_y, accel_z = read_lsm303agr()
+            
+            print("epoch time: ", seconds)
+            message = [f"\nNEW TRANSMIT, {seconds}\n"] 
+            SenFile.writelines(message)
 
+            lines = [f"Time: {seconds}, Alt: {alt}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
+            SenFile.writelines(lines)   
+
+            print(f"Temperature: {temperature:.2f}°C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms")
+            print(f"Acceleration - X: {accel_x}, Y: {accel_y}, Z: {accel_z}")
+
+            SenFile.flush()  # Ensure data is written to the file immediately
+    except KeyboardInterrupt:
+        return 1
 
 
 def main():
