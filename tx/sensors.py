@@ -81,10 +81,10 @@ def SensCall():
 
 def SensCall2(filename):
     try:
-        with open(filename, "a") as SenFile:
+        with open(filename, "a", newline='') as SenFile:
             #seconds = time.time()
             is_file_empty = os.stat(filename).st_size == 0
-            csv_writer = csv.writer(SenFile)
+            csv_writer = csv.writer(SenFile, lineterminator=os.linesep)
 
             #Write headers if the file is empty
             if is_file_empty:
