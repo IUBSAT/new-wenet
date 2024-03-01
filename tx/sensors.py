@@ -1,6 +1,7 @@
 # Written by Annabel Brinker
 
 import time, datetime
+import csv, os
 import smbus2
 import bme680
 import math
@@ -77,24 +78,33 @@ def SensCall():
 
     SenFile.close()
 
-def SensCall2():
+def SensCall2(filename):
+    is_file_empty = os.stat(filename).st_size == 0
+
     try:
-        with open("SensorData.txt", "a") as SenFile:
+        with open(filename, "a") as SenFile:
             #seconds = time.time()
+            csv_writer = csv.writer(SenFile)
+
+            #Write headers if the file is empty
+            if is_file_empty:
+                csv_writer.writerow(["Timestamp", "Altitude", "Temperature", "Pressure", "Humidity", "Gas", "AccelX", "AccelY", "AccelZ"])
+
             timestamp = datetime.now(datetime.UTC)
             timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            
             alt, temperature, pressure, gas, humidity = altitude()
             accel_x, accel_y, accel_z = read_lsm303agr()
             
             print("Time: ", timestamp_str)
-            message = [f"\nNEW TRANSMIT, {timestamp_str}\n"] 
-            SenFile.writelines(message)
-
-            lines = [f"Time: {timestamp_str}, Alt: {alt}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
-            SenFile.writelines(lines)   
-
             print(f"Alt: {alt}, Temperature: {temperature:.2f}°C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms")
             print(f"Acceleration - X: {accel_x}, Y: {accel_y}, Z: {accel_z}")
+            # message = [f"\nNEW TRANSMIT, {timestamp_str}\n"] 
+            # SenFile.writelines(message)
+
+            # lines = [f"Time: {timestamp_str}, Alt: {alt}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
+            # SenFile.writelines(lines)   
+            csv_writer.writerow([timestamp_str, alt, temperature, pressure, humidity, gas, accel_x, accel_y, accel_z])
 
             SenFile.flush()  # Ensure data is written to the file immediately
     except KeyboardInterrupt:

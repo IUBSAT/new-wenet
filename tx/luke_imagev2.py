@@ -48,10 +48,10 @@ def transmit_process(encode_list, transmitted_set, last_sent):
                 last_sent.value = image_num
                 tx_done_event.set()
 
-def sensor_process():
+def sensor_process(csv_filename):
     while True:
         tx_done_event.wait(10.0) #timeout, in case tx dies. Also, let the encoder process clear the flag, as it is higher priority
-        SensCall2()
+        SensCall2(csv_filename)
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         transmit_process = Process(target=transmit_process, args=(encode_list, transmitted_set, last_sent))
         transmit_process.start()
 
-        sensor_process = Process(target=sensor_process, args=())
+        sensor_process = Process(target=sensor_process, args=("sensordata.csv",))
         sensor_process.start()
 
         try:
