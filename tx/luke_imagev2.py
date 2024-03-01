@@ -1,6 +1,6 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob
-import time
+import time, signal
 from sensors import read_bme680, SensCall2, altitude
 
 callsign = "KD9ZSC"
@@ -112,12 +112,22 @@ def transmit_file(filename, tx_object):
     print("Waiting for tx queue to empty...")
     tx_object.wait()
 
+
+def signal_handler():
+    print("Interrupt received, running kill-all")
+    global termination_event
+    termination_event.set()
+    sys.exit(0)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--baudrate", default=115200, type=int,
                     help="Transmitter baud rate. Defaults to 115200 baud.")
 args = parser.parse_args()
 
+termination_event = Event()
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal_handler)
 
     with Manager() as manager:
         capture_list = manager.list()
@@ -150,12 +160,34 @@ if __name__ == "__main__":
         sensor_process = Process(target=sensor_process, args=("sensordata.csv",))
         sensor_process.start()
 
+        # try:
+        #     capture_process.join()
+        #     ssdv_process.join()
+        #     transmit_process.join()
+        #     sensor_process.join()
+        # except KeyboardInterrupt:
+        #     print("Terminating processes...")
+        #     capture_process.terminate()
+        #     ssdv_process.terminate()
+        #     transmit_process.terminate()
+        #     sensor_process.terminate()
+
         try:
-            capture_process.join()
-            ssdv_process.join()
-            transmit_process.join()
-        except KeyboardInterrupt:
-            print("Terminating processes...")
-            capture_process.terminate()
-            ssdv_process.terminate()
-            transmit_process.terminate()
+            while not termination_event.is_set():  # Check for termination flag
+                capture_process.join()
+                ssdv_process.join()
+                transmit_process.join()
+                sensor_process.join()
+        except:  # Catch any exceptions
+            print("Unexpected error occurred.")
+        finally:  # Always cleanup processes
+            if capture_process.is_alive():
+                capture_process.terminate()
+            if ssdv_process.is_alive():
+                ssdv_process.terminate()
+            if transmit_process.is_alive():
+                transmit_process.terminate()
+            if sensor_process.is_alive():
+                sensor_process.terminate()
+
+        print("Processes terminated.")
