@@ -16,7 +16,6 @@ def capture_process(capture_list):
             os.system(cmd)
             capture_list.append(i)
             i += 1
-            SensCall()
             time.sleep(1.0)  # Adjust sleep time based on capture frequency
 
 def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):

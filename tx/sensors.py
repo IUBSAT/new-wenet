@@ -1,6 +1,6 @@
 # Written by Annabel Brinker
 
-import time
+import time, datetime
 import smbus2
 import bme680
 import math
@@ -42,8 +42,8 @@ def altitude():
     temperature, pressure, gas, humidity = read_bme680()
     SeaPress = pressure / ((1 - (243/44330))**5.255)
     altitude = int( 44330*(1 - ((pressure / SeaPress)**(1/5.255))) )
-    print("this is altitude: ") 
-    print(altitude)
+    #print("this is altitude: ") 
+    #print(altitude)
     #print("\n") 
     return altitude, temperature, pressure, gas, humidity
 
@@ -80,18 +80,20 @@ def SensCall():
 def SensCall2():
     try:
         with open("SensorData.txt", "a") as SenFile:
-            seconds = time.time() 
+            #seconds = time.time()
+            timestamp = datetime.now(datetime.UTC)
+            timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             alt, temperature, pressure, gas, humidity = altitude()
             accel_x, accel_y, accel_z = read_lsm303agr()
             
-            print("epoch time: ", seconds)
-            message = [f"\nNEW TRANSMIT, {seconds}\n"] 
+            print("Time: ", timestamp_str)
+            message = [f"\nNEW TRANSMIT, {timestamp_str}\n"] 
             SenFile.writelines(message)
 
-            lines = [f"Time: {seconds}, Alt: {alt}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
+            lines = [f"Time: {timestamp_str}, Alt: {alt}, Temp: {temperature:.2f} C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms \nAccelX: {accel_x}, AccelY: {accel_y}, AccelZ: {accel_z}\n"]
             SenFile.writelines(lines)   
 
-            print(f"Temperature: {temperature:.2f}°C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms")
+            print(f"Alt: {alt}, Temperature: {temperature:.2f}°C, Pressure: {pressure:.2f} hPa, Humidity: {humidity:.2f}%, Gas: {gas:0} Ohms")
             print(f"Acceleration - X: {accel_x}, Y: {accel_y}, Z: {accel_z}")
 
             SenFile.flush()  # Ensure data is written to the file immediately
