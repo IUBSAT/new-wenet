@@ -1,6 +1,7 @@
-# Written by Annabel Brinker
+# Written by Annabel Brinker and Lucas Snyder
 
-import time, datetime
+import time
+from datetime import datetime, timezone
 import csv, os
 import smbus2
 import bme680
@@ -79,18 +80,17 @@ def SensCall():
     SenFile.close()
 
 def SensCall2(filename):
-    is_file_empty = os.stat(filename).st_size == 0
-
     try:
         with open(filename, "a") as SenFile:
             #seconds = time.time()
+            is_file_empty = os.stat(filename).st_size == 0
             csv_writer = csv.writer(SenFile)
 
             #Write headers if the file is empty
             if is_file_empty:
                 csv_writer.writerow(["Timestamp", "Altitude", "Temperature", "Pressure", "Humidity", "Gas", "AccelX", "AccelY", "AccelZ"])
 
-            timestamp = datetime.now(datetime.UTC)
+            timestamp = datetime.now(timezone.utc)
             timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
             
             alt, temperature, pressure, gas, humidity = altitude()
