@@ -153,6 +153,7 @@ def signal_handler():
 parser = argparse.ArgumentParser()
 parser.add_argument("--baudrate", default=115200, type=int,
                     help="Transmitter baud rate. Defaults to 115200 baud.")
+parser.add_argument("--autorestart", action="store_true", help="Enable auto-restart.")
 args = parser.parse_args()
 
 termination_event = Event()
@@ -220,5 +221,9 @@ if __name__ == "__main__":
                 transmit_process.terminate()
             if sensor_process.is_alive():
                 sensor_process.terminate()
-
-        print("Processes terminated.")
+            
+            print("Processes terminated.")
+            
+            if args.autorestart:
+                print("Restarting transmission")
+                os.execv("./transmit.sh", ["transmit.sh"])
