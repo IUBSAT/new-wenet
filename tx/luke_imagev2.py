@@ -1,5 +1,5 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
-import PacketTX, sys, os, argparse, glob
+import PacketTX, sys, os, argparse, glob, re
 import time, signal
 from sensors import read_bme680, SensCall2, altitude
 
@@ -9,7 +9,35 @@ debug_output = False
 new_size = ["800x608"]
 
 def capture_process(capture_list):
-    i = 1
+    signal.signal(signal.SIGINT, signal_handler)
+    image_dir = "tx_images"
+    # Check if the directory is empty
+    if not any(os.scandir(image_dir)):
+        i = 1
+        print("Directory is empty. Starting count from", i)
+    else:
+        # Get an iterator of all files in the directory
+        files = os.scandir(image_dir)
+
+        # Define a regex pattern to extract the number
+        pattern = r'^(\d+)'
+
+        # Extract the numbers from the filenames and find the maximum
+        numbers = []
+        for entry in files:
+            if entry.is_file():
+                match = re.match(pattern, entry.name)
+                if match:
+                    numbers.append(int(match.group(1)))
+
+
+        if numbers:
+            i = max(numbers) + 1
+            print("Found existing images. Resuming count from", i)
+        else:
+            i = 1
+            print("No matching filenames found. Starting count from", i)
+    #i = 1
     while True:
         #for i in image_range:
             cmd = "libcamera-still --immediate -n -o tx_images/%d.jpg" % i
@@ -19,6 +47,7 @@ def capture_process(capture_list):
             time.sleep(1.0)  # Adjust sleep time based on capture frequency
 
 def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
+    signal.signal(signal.SIGINT, signal_handler)
     while True:
         if capture_list:
             tx_done_event.wait()
@@ -38,6 +67,7 @@ def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
                 last_encoded.value = image_num
 
 def transmit_process(encode_list, transmitted_set, last_sent):
+    signal.signal(signal.SIGINT, signal_handler)
     while True:
         if encode_list:
             image_num = encode_list[-1]
@@ -49,6 +79,7 @@ def transmit_process(encode_list, transmitted_set, last_sent):
                 tx_done_event.set()
 
 def sensor_process(csv_filename):
+    signal.signal(signal.SIGINT, signal_handler)
     while True:
         tx_done_event.wait(10.0) #timeout, in case tx dies. Also, let the encoder process clear the flag, as it is higher priority
         SensCall2(csv_filename)
