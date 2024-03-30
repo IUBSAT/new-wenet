@@ -17,14 +17,19 @@ LSM303AGR_REG_ACCEL_Z_LSB = 0x2C
 LSM303AGR_REG_ACCEL_Z_MSB = 0x2D
 
 # BME680 setup
-bme = bme680.BME680(0x77)
+try:
+    bme = bme680.BME680(0x77)
+except:
+    print("BME not connected at 0x77")
 
 # LSM303AGR setup
 bus = smbus2.SMBus(1)  # Use bus 1 for Raspberry Pi
 bus.write_byte_data(LSM303AGR_ADDR, 0x20, 0x27)  # Enable accelerometer, set to normal mode
 
 def bme_is_alive():
-    return bme.get_sensor_data()
+    if bme:
+        return True
+    return False 
 
 
 def read_bme680():
