@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob, re
 import time, signal
-from sensors import read_bme680, SensCall2, altitude
+from sensors import read_bme680, SensCall2, altitude, bme_is_alive
 
 callsign = "KD9ZSC"
 #image_range = range(1, 20)
@@ -86,8 +86,16 @@ def sensor_process(csv_filename):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    alt, temp, press, gas, humidity = altitude()
-    telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
+    if bme_is_alive():
+        alt, temp, press, gas, humidity = altitude()
+        telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
+    else:
+        telem_str = "Alt: null  Temp: null"
+    # try:
+    #     alt, temp, press, gas, humidity = altitude()
+    #     telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
+    # except:
+    #     telem_str = "Alt: null  Temp: null"
     #filename = "tx_images/%d.jpg" % image_num
     os.system("cp tx_images/%d.jpg tx_images/%d_raw.jpg" % (image_num, image_num))
     # Build up our imagemagick 'convert' command line
@@ -226,4 +234,5 @@ if __name__ == "__main__":
             
             if args.autorestart:
                 print("Restarting transmission")
+                time.sleep(1.0)
                 os.execv("./transmit.sh", ["transmit.sh"])

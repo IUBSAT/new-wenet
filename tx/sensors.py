@@ -23,6 +23,10 @@ bme = bme680.BME680(0x77)
 bus = smbus2.SMBus(1)  # Use bus 1 for Raspberry Pi
 bus.write_byte_data(LSM303AGR_ADDR, 0x20, 0x27)  # Enable accelerometer, set to normal mode
 
+def bme_is_alive():
+    return bme.get_sensor_data()
+
+
 def read_bme680():
     bme.set_humidity_oversample(bme680.OS_2X)
 
@@ -33,11 +37,16 @@ def read_bme680():
     bme.set_gas_heater_temperature(320) 
     bme.set_gas_heater_duration(150)  
 
-     
-    temperature = bme.data.temperature
-    pressure = bme.data.pressure
-    humidity = bme.data.humidity
-    gas = bme.data.gas_resistance 
+    if bme.get_sensor_data():
+        temperature = bme.data.temperature
+        pressure = bme.data.pressure
+        humidity = bme.data.humidity
+        gas = bme.data.gas_resistance
+    else:
+        temperature = 0
+        pressure = 0
+        humidity = 0
+        gas = 0
     return temperature, pressure, gas, humidity
 
 def altitude():
