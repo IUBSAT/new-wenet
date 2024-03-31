@@ -46,6 +46,9 @@ def sensors_alive():
     else:
         return False
 
+def bme_living():
+    return bme_is_alive
+
 def read_bme680():
     global bme_is_alive
     if bme.get_sensor_data():

@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob, re
 import time, signal
-from sensors import read_bme680, SensCall2, altitude, sensors_alive
+from sensors import read_bme680, SensCall2, altitude, bme_living
 
 callsign = "KD9ZSC"
 #image_range = range(1, 20)
@@ -86,7 +86,7 @@ def sensor_process(csv_filename):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    if sensors_alive():
+    if bme_living():
         alt, temp, press, gas, humidity = altitude()
         telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
     else:
