@@ -1,7 +1,7 @@
 from multiprocessing import Process, Queue, Value, Manager, Event
 import PacketTX, sys, os, argparse, glob, re
 import time, signal
-from sensors import read_bme680, SensCall2, altitude, bme_is_alive
+from sensors import read_bme680, SensCall2, altitude, sensors_alive
 
 callsign = "KD9ZSC"
 #image_range = range(1, 20)
@@ -40,7 +40,7 @@ def capture_process(capture_list):
     #i = 1
     while True:
         #for i in image_range:
-            cmd = "libcamera-still --immediate -n -o tx_images/%d.jpg" % i
+            cmd = "libcamera-still --immediate -n -o tx_images/%d.jpg -v 0" % i
             os.system(cmd)
             capture_list.append(i)
             i += 1
@@ -86,10 +86,11 @@ def sensor_process(csv_filename):
 
 def encode_image(image_num):
     # Similar to your existing ssdv function
-    if bme_is_alive():
+    if sensors_alive():
         alt, temp, press, gas, humidity = altitude()
         telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
     else:
+        print("Sensors not alive, encoding without telem")
         telem_str = "Alt: null  Temp: null"
     # try:
     #     alt, temp, press, gas, humidity = altitude()
