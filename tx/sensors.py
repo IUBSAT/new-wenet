@@ -66,13 +66,13 @@ def read_bme680():
     return temperature, pressure, gas, humidity
 
 def altitude():
-    temperature, pressure, gas, humidity, bme_is_alive = read_bme680()
+    temperature, pressure, gas, humidity = read_bme680()
     SeaPress = pressure / ((1 - (243/44330))**5.255)
     altitude = int( 44330*(1 - ((pressure / SeaPress)**(1/5.255))) )
     #print("this is altitude: ") 
     #print(altitude)
     #print("\n") 
-    return altitude, temperature, pressure, gas, humidity, bme_is_alive
+    return altitude, temperature, pressure, gas, humidity
 
 def read_lsm303agr():
     global lsm_is_alive
