@@ -33,7 +33,7 @@ def capture_process(capture_list):
 
         if numbers:
             i = max(numbers) + 1
-            print("Found existing images. Resuming count from", i)
+            print("Found existing images. Resuming count from", i, file=sys.stderr)
         else:
             i = 1
             print("No matching filenames found. Starting count from", i)
@@ -42,6 +42,7 @@ def capture_process(capture_list):
         #for i in image_range:
             cmd = "libcamera-still --immediate -n -o tx_images/%d.jpg -v 0" % i
             os.system(cmd)
+            print("Captured image {}".format(i), file=sys.stderr)
             capture_list.append(i)
             i += 1
             time.sleep(1.0)  # Adjust sleep time based on capture frequency
@@ -60,7 +61,7 @@ def ssdv_process(capture_list, encode_list, encoded_set, last_encoded):
             print("Latest jpg from the camera: ",latest_file)
             
             if image_num > last_encoded.value:
-                print("Encoding image {} because it is newer than {}" .format(image_num, last_encoded.value))
+                print("Encoding image {} because it is newer than {}" .format(image_num, last_encoded.value), file=sys.stderr)
                 encode_image(image_num)
                 encode_list.append(image_num)
                 encoded_set.add(image_num)
@@ -72,7 +73,7 @@ def transmit_process(encode_list, transmitted_set, last_sent):
         if encode_list:
             image_num = encode_list[-1]
             if image_num >= last_sent.value and image_num not in transmitted_set:
-                print("Transmitting image {}" .format(image_num))
+                print("Transmitting image {}" .format(image_num), file=sys.stderr)
                 transmit_image(image_num)
                 transmitted_set.add(image_num)
                 last_sent.value = image_num
@@ -90,7 +91,7 @@ def encode_image(image_num):
         alt, temp, press, gas, humidity = altitude()
         telem_str = "Alt: %dm   Temp: %.2fC" % (alt, temp)
     else:
-        print("Sensors not alive, encoding without telem")
+        print("Sensors not alive, encoding without telem", file=sys.stderr)
         telem_str = "Alt: null  Temp: null"
     # try:
     #     alt, temp, press, gas, humidity = altitude()
@@ -130,17 +131,17 @@ def transmit_image(image_num):
     tx = PacketTX.PacketTX(debug=debug_output, serial_baud=args.baudrate)
     tx.start_tx()
     filename = f"tx_images/{image_num}_800x608.bin"
-    print("\nTXing: %s" % filename)
+    print("\nTXing: %s" % filename, file=sys.stderr)
     transmit_file(filename, tx)
     tx.close()
 
 def transmit_file(filename, tx_object):
     file_size = os.path.getsize(filename)
     if file_size % 256 > 0:
-        print("File Size not a multiple of 256 bytes")
+        print("File Size not a multiple of 256 bytes", file=sys.stderr)
         return
 
-    print("Transmitting %d Packets." % (file_size // 256))
+    print("Transmitting %d Packets." % (file_size // 256), file=sys.stderr)
 
     f = open(filename, 'rb')
 
@@ -149,12 +150,12 @@ def transmit_file(filename, tx_object):
         tx_object.tx_packet(data)
 
     f.close()
-    print("Waiting for tx queue to empty...")
+    print("Waiting for tx queue to empty...", file=sys.stderr)
     tx_object.wait()
 
 
 def signal_handler():
-    print("Interrupt received, running kill-all")
+    print("Interrupt received, running kill-all", file=sys.stderr)
     global termination_event
     termination_event.set()
     sys.exit(0)

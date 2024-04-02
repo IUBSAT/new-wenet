@@ -127,7 +127,7 @@ def SensCall2(filename):
                 alt, temperature, pressure, gas, humidity = altitude()
                 accel_x, accel_y, accel_z = read_lsm303agr()
             else:
-                print("sensors not alive, using placeholder values")
+                #print("sensors not alive, using placeholder values")
                 alt = temperature = pressure = gas = humidity = 0.0
                 accel_x = accel_y = accel_z = 0.0
            
