@@ -20,4 +20,4 @@ BAUDRATE=115200
 #cd ~/wenet/tx/
 
 python3 init_rfm98w.py --frequency $TXFREQ --baudrate $BAUDRATE --spidevice 1
-python3 luke_imagev2.py --baudrate $BAUDRATE | tee ~/wenet_$(date '+%d_%H-%M-%S').log
+python3 luke_imagev2.py --baudrate $BAUDRATE --autorestart 2>&1 | tee ~/wenet_$(date '+%d_%H-%M-%S').log

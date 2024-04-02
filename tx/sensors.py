@@ -27,7 +27,7 @@ try:
     bme.set_gas_status(bme680.ENABLE_GAS_MEAS) 
     bme.set_gas_heater_temperature(320) 
     bme.set_gas_heater_duration(150)
-except IOError:
+except RuntimeError:
     bme_is_alive = False
     print("BME not connected at 0x77")
 
@@ -36,7 +36,7 @@ try:
     bus = smbus2.SMBus(1)  # Use bus 1 for Raspberry Pi
     bus.write_byte_data(LSM303AGR_ADDR, 0x20, 0x27)  # Enable accelerometer, set to normal mode
     lsm_is_alive = True
-except IOError:
+except:
     lsm_is_alive = False
     print("LSM not connected at 0x%x" % LSM303AGR_ADDR)
 
@@ -58,10 +58,10 @@ def read_bme680():
         gas = bme.data.gas_resistance
         bme_is_alive = True
     else:
-        temperature = 0
-        pressure = 0
-        humidity = 0
-        gas = 0
+        temperature = 1.0
+        pressure = 1.0
+        humidity = 1.0
+        gas = 1.0
         bme_is_alive = False
     return temperature, pressure, gas, humidity
 
@@ -86,7 +86,7 @@ def read_lsm303agr():
         accel_y = read_signed_data(LSM303AGR_REG_ACCEL_Y_LSB)
         accel_z = read_signed_data(LSM303AGR_REG_ACCEL_Z_LSB)
         lsm_is_alive = True
-    except IOError:
+    except:
         accel_x = accel_y = accel_z = 0.0
         lsm_is_alive = False
     return accel_x, accel_y, accel_z
@@ -128,8 +128,8 @@ def SensCall2(filename):
                 accel_x, accel_y, accel_z = read_lsm303agr()
             else:
                 #print("sensors not alive, using placeholder values")
-                alt = temperature = pressure = gas = humidity = 0.0
-                accel_x = accel_y = accel_z = 0.0
+                alt = temperature = pressure = gas = humidity = 1.0
+                accel_x = accel_y = accel_z = 1.0
            
             
             print("Time: ", timestamp_str)
